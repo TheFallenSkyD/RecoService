@@ -160,3 +160,8 @@ cython_debug/
 #.idea/
 !/.ruff_cache/
 !/datasets/
+!/datasets/interactions.csv
+
+!/datasets/items.csv
+
+!/datasets/users.csv
