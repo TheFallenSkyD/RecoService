@@ -16,19 +16,24 @@ logger = logging.getLogger("API")
 class ModelService:
     def __init__(self):
         self.models: dict[ModelNamesEnum, Any] = {}
+        self.model_ok = False
         self._load_models()
 
     def _load_models(self):
-        for model_name in (ModelNamesEnum.USER_KNN, ModelNamesEnum.POPULAR):
-            if not Path(settings.MODELS_DIRECTORY, f'{model_name.value}.dill').exists():
-                message = f"ML model at {model_name} doesn't exist"
-                logger.error(message)
-                raise FileNotFoundError(message)
+        try:
+            for model_name in (ModelNamesEnum.USER_KNN, ModelNamesEnum.POPULAR):
+                if not Path(settings.MODELS_DIRECTORY, f'{model_name.value}.dill').exists():
+                    message = f"ML model at {model_name} doesn't exist"
+                    logger.error(message)
+                    raise FileNotFoundError(message)
 
-            with open(Path(settings.MODELS_DIRECTORY, f'{model_name.value}.dill'), 'rb') as f:
-                model = dill.load(f)
+                with open(Path(settings.MODELS_DIRECTORY, f'{model_name.value}.dill'), 'rb') as f:
+                    model = dill.load(f)
 
-            self.models[model_name] = model
+                self.models[model_name] = model
+                self.model_ok = True
+        except Exception as e:
+            logger.error("model loading error", exc_info=e)
 
     async def process_model_response(self, model_name: ModelNamesEnum, user_id: str) -> ModelRetrieveSchema:
         items = self._get_model_predictions(model_name, user_id)
@@ -40,6 +45,8 @@ class ModelService:
         return ModelRetrieveSchema(user_id=user_id, items=items)
 
     def _get_model_predictions(self, model_name: ModelNamesEnum, user_id: str) -> list[int]:
+        if not self.model_ok:
+            return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         match model_name:
             case ModelNamesEnum.TEST:
                 return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
