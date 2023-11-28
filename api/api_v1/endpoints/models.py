@@ -1,4 +1,5 @@
 from fastapi import APIRouter, status
+from fastapi.requests import Request
 
 from schemas.base import Error, Message
 from schemas.models import ModelNamesEnum, ModelRetrieveSchema
@@ -22,5 +23,6 @@ router = APIRouter()
         },
     },
 )
-async def get_model_response(model_name: ModelNamesEnum, user_id: str):
-    return await ModelService().process_model_response(model_name, user_id)
+async def get_model_response(request: Request, model_name: ModelNamesEnum, user_id: str):
+    service: ModelService = request.app.state.model_service
+    return await service.process_model_response(model_name, user_id)
