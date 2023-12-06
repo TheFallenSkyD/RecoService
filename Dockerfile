@@ -13,4 +13,6 @@ RUN python -m pip install --no-cache-dir -r requirements.txt
 
 COPY . ./
 
+RUN mkdir model_dills
+
 CMD ["gunicorn", "main:app", "-c", "gunicorn.config.py"]

@@ -4,6 +4,7 @@ from typing import AsyncGenerator, Iterator
 
 import nest_asyncio
 import pytest
+from asgi_lifespan import LifespanManager
 from httpx import AsyncClient
 
 from main import app
@@ -24,7 +25,8 @@ def jwt_token() -> str:
 
 @pytest.fixture
 async def client(jwt_token) -> AsyncGenerator[AsyncClient, None]:
-    async with AsyncClient(app=app, base_url="https://test") as client:
-        client.headers.update({"Authorization": f"Bearer {jwt_token}"})
+    async with LifespanManager(app):
+        async with AsyncClient(app=app, base_url="https://test") as client:
+            client.headers.update({"Authorization": f"Bearer {jwt_token}"})
 
-        yield client
+            yield client
