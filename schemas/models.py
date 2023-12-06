@@ -7,6 +7,7 @@ class ModelNamesEnum(str, enum.Enum):
     TEST = 'test'
     USER_KNN = 'user_knn'
     POPULAR = 'popular'
+    ASL = 'asl'
 
 
 class ModelRetrieveSchema(BaseModel):

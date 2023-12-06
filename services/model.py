@@ -3,7 +3,9 @@ from pathlib import Path
 from typing import Any
 
 import dill
-from rectools.models import PopularModel
+from rectools import Columns
+from rectools.dataset import Dataset
+from rectools.models import PopularModel, ImplicitALSWrapperModel
 
 from core.settings import settings
 from exceptions.base import NotFoundError
@@ -17,21 +19,26 @@ class ModelService:
     def __init__(self):
         self.models: dict[ModelNamesEnum, Any] = {}
         self.model_ok = False
+        self.dataset: Dataset | None = None
         self._load_models()
 
     def _load_models(self):
         try:
-            for model_name in (ModelNamesEnum.USER_KNN, ModelNamesEnum.POPULAR):
-                if not Path(settings.MODELS_DIRECTORY, f'{model_name.value}.dill').exists():
+            for model_name in (ModelNamesEnum.USER_KNN, ModelNamesEnum.POPULAR, ModelNamesEnum.ASL):
+                if not Path(settings.MODELS_DIRECTORY, f"{model_name.value}.dill").exists():
                     message = f"ML model at {model_name} doesn't exist"
                     logger.error(message)
                     raise FileNotFoundError(message)
 
-                with open(Path(settings.MODELS_DIRECTORY, f'{model_name.value}.dill'), 'rb') as f:
+                with open(Path(settings.MODELS_DIRECTORY, f"{model_name.value}.dill"), "rb") as f:
                     model = dill.load(f)
 
                 self.models[model_name] = model
                 self.model_ok = True
+
+            with open(Path(settings.MODELS_DIRECTORY, "dataset.dill"), "rb") as f:
+                dataset = dill.load(f)
+                self.dataset = dataset
         except Exception as e:
             logger.error("model loading error", exc_info=e)
 
@@ -54,12 +61,18 @@ class ModelService:
                 return self.get_user_knn_predictions(user_id)
             case ModelNamesEnum.POPULAR:
                 return self.get_popular_predictions()
+            case ModelNamesEnum.ASL:
+                return self.get_asl_predictions(user_id)
             case _:
                 raise NotFoundError()
 
     def get_user_knn_predictions(self, user_id: str) -> list[int]:
         model: UserKnn = self.models[ModelNamesEnum.USER_KNN]
         return model.recommend(int(user_id), N_recs=10)
+
+    def get_asl_predictions(self, user_id: str) -> list[int]:
+        model: ImplicitALSWrapperModel = self.models[ModelNamesEnum.ASL]
+        return model.recommend([int(user_id)], dataset=self.dataset, k=10, filter_viewed=True)[Columns.Item].tolist()
 
     def get_popular_predictions(self) -> list[int]:
         model: PopularModel = self.models[ModelNamesEnum.POPULAR]
