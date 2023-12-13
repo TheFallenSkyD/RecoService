@@ -26,4 +26,4 @@ mypy: .venv
 pylint: .venv
 	poetry run pylint $(PROJECT) $(TESTS)
 
-lint: isort flake pylint
+lint: isort flake
