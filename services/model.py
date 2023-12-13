@@ -73,6 +73,8 @@ class ModelService:
                 return self.get_asl_predictions(user_id)
             case ModelNamesEnum.RECBOLL:
                 return self.get_recbol_predictions(user_id)
+            case ModelNamesEnum.AUTOENCODER:
+                return self.get_autoencoder_predictions(user_id)
             case _:
                 raise NotFoundError()
 
@@ -92,10 +94,10 @@ class ModelService:
     def _clear_items(items: list[int]) -> list[int]:
         return list(dict.fromkeys(items))[:10]
 
-    def get_recbol_predictions(self, user_id) -> list[int]:
+    def get_recbol_predictions(self, user_id: str) -> list[int]:
         model: MultiVAE = self.models[ModelNamesEnum.RECBOLL]
         with torch.no_grad():
-            uid_series = self.recbol_dataset.token2id(self.recbol_dataset.uid_field, [user_id])
+            uid_series = self.recbol_dataset.token2id(self.recbol_dataset.uid_field, [int(user_id)])
             index = np.isin(self.recbol_dataset[self.recbol_dataset.uid_field].numpy(), uid_series)
             new_inter = self.recbol_dataset[index]
             new_inter = new_inter.to("CPU")
@@ -104,3 +106,7 @@ class ModelService:
             recommended_item_indices = torch.topk(new_scores, 10).indices[0].tolist()
             recos = self.recbol_dataset.id2token(self.recbol_dataset.iid_field, [recommended_item_indices]).tolist()
         return recos
+
+    def get_autoencoder_predictions(self, user_id: str) -> list[int]:
+        model: dict[int, list[int]] = self.models[ModelNamesEnum.AUTOENCODER]
+        return model.get(int(user_id), [])

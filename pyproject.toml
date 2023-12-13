@@ -28,9 +28,12 @@ rectools = "^0.4.2"
 colorama = "0.4.4"
 kmeans-pytorch = "^0.3"
 ray = {extras = ["tune"], version = "^2.8.1"}
-torch = "^2.1.1"
 recbole = "^1.2.0"
 dill = "^0.3.7"
+cuda-python = "^12.3.0"
+torch = "^2.1.1"
+torchvision = "^0.16.1"
+torchaudio = "^2.1.1"
 
 
 [tool.poetry.group.lint.dependencies]

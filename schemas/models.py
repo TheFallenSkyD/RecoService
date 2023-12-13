@@ -9,6 +9,7 @@ class ModelNamesEnum(str, enum.Enum):
     POPULAR = 'popular'
     ASL = 'asl'
     RECBOLL = 'recboll'
+    AUTOENCODER = 'autoencoder'
 
 
 class ModelRetrieveSchema(BaseModel):
