@@ -8,6 +8,8 @@ class ModelNamesEnum(str, enum.Enum):
     USER_KNN = 'user_knn'
     POPULAR = 'popular'
     ASL = 'asl'
+    RECBOLL = 'recboll'
+    AUTOENCODER = 'autoencoder'
 
 
 class ModelRetrieveSchema(BaseModel):

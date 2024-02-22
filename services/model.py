@@ -3,6 +3,9 @@ from pathlib import Path
 from typing import Any
 
 import dill
+import numpy as np
+import torch
+from recbole.model.general_recommender import MultiVAE
 from rectools import Columns
 from rectools.dataset import Dataset
 from rectools.models import PopularModel, ImplicitALSWrapperModel
@@ -20,6 +23,7 @@ class ModelService:
         self.models: dict[ModelNamesEnum, Any] = {}
         self.model_ok = False
         self.dataset: Dataset | None = None
+        self.recbol_dataset: Any | None = None
         self._load_models()
 
     def _load_models(self):
@@ -39,6 +43,10 @@ class ModelService:
             with open(Path(settings.MODELS_DIRECTORY, "dataset.dill"), "rb") as f:
                 dataset = dill.load(f)
                 self.dataset = dataset
+
+            with open(Path(settings.MODELS_DIRECTORY, "recbol_dataset.dill"), "rb") as f:
+                dataset = dill.load(f)
+                self.recbol_dataset = dataset
         except Exception as e:
             logger.error("model loading error", exc_info=e)
 
@@ -63,6 +71,10 @@ class ModelService:
                 return self.get_popular_predictions()
             case ModelNamesEnum.ASL:
                 return self.get_asl_predictions(user_id)
+            case ModelNamesEnum.RECBOLL:
+                return self.get_recbol_predictions(user_id)
+            case ModelNamesEnum.AUTOENCODER:
+                return self.get_autoencoder_predictions(user_id)
             case _:
                 raise NotFoundError()
 
@@ -81,3 +93,20 @@ class ModelService:
     @staticmethod
     def _clear_items(items: list[int]) -> list[int]:
         return list(dict.fromkeys(items))[:10]
+
+    def get_recbol_predictions(self, user_id: str) -> list[int]:
+        model: MultiVAE = self.models[ModelNamesEnum.RECBOLL]
+        with torch.no_grad():
+            uid_series = self.recbol_dataset.token2id(self.recbol_dataset.uid_field, [int(user_id)])
+            index = np.isin(self.recbol_dataset[self.recbol_dataset.uid_field].numpy(), uid_series)
+            new_inter = self.recbol_dataset[index]
+            new_inter = new_inter.to("CPU")
+            new_scores = model.full_sort_predict(new_inter)
+            new_scores[:, 0] = -np.inf
+            recommended_item_indices = torch.topk(new_scores, 10).indices[0].tolist()
+            recos = self.recbol_dataset.id2token(self.recbol_dataset.iid_field, [recommended_item_indices]).tolist()
+        return recos
+
+    def get_autoencoder_predictions(self, user_id: str) -> list[int]:
+        model: dict[int, list[int]] = self.models[ModelNamesEnum.AUTOENCODER]
+        return model.get(int(user_id), [])
